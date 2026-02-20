@@ -1,0 +1,699 @@
+# Cursor/Antigravity Rules for KMP Feature-First Architecture
+## Project Documentation
+
+Before answering questions, consult these documentation files:
+- **ARCHITECTURE.md** - For architecture and structure questions
+- **CODING_STANDARDS.md** - For code style and conventions
+- **TECH_STACK.md** - For technology and library choices
+- **FEATURE_TEMPLATE.md** - When adding new features
+
+When the user asks about:
+- Architecture/structure → Read ARCHITECTURE.md first
+- Code style/conventions → Read CODING_STANDARDS.md first
+- Adding features → Read FEATURE_TEMPLATE.md first
+- Technology choices → Read TECH_STACK.md first
+
+Always follow the guidelines in these documents.
+
+## Project Context
+This is a Kotlin Multiplatform (KMP) project with **Feature-First Modular Architecture**. Each feature is self-contained with its own data, domain, and DI layers.
+
+## Feature-First Architecture Rules (CRITICAL)
+
+### Feature Structure
+```
+composeApp/src/commonMain/kotlin/
+├── core/               # Shared utilities ONLY
+│   ├── data/
+│   ├── domain/
+│   ├── di/
+│   └── util/
+└── feature/            # Feature modules
+    ├── news/
+    │   ├── data/
+    │   ├── domain/
+    │   └── di/
+    └── settings/
+        ├── data/
+        ├── domain/
+        └── di/
+```
+
+### CRITICAL Dependency Rules
+
+**✅ ALLOWED:**
+- Features can depend on `core/`
+- Features can depend on external libraries
+- UI layer can depend on any feature
+
+**❌ FORBIDDEN:**
+- Features CANNOT depend on other features
+- Features CANNOT import from other features
+- Features CANNOT share code directly
+
+**Example:**
+```kotlin
+// ✅ CORRECT - Feature depends on core
+import com.example.core.domain.model.Result
+import com.example.feature.news.domain.model.NewsFeed
+
+// ❌ WRONG - Feature depends on another feature
+import com.example.feature.settings.domain.model.AppSettings // NO!
+```
+
+### When Features Need to Communicate
+
+If features need to share data or communicate:
+
+**Option 1: Move to Core**
+```kotlin
+// If multiple features need it, move to core/domain/model/
+core/domain/model/User.kt
+```
+
+**Option 2: Use Events/Messages**
+```kotlin
+// Create event bus in core
+core/domain/event/AppEvent.kt
+```
+
+**Option 3: Through UI/Navigation**
+```kotlin
+// Features communicate through navigation with results
+navController.previousBackStackEntry?.savedStateHandle?.set("result", data)
+```
+
+## Layer Separation Within Features
+
+### Each Feature Must Have:
+
+1. **data/** - Data layer
+   - `remote/` - API services, DTOs
+   - `local/` - DAOs, Entities  
+   - `repository/` - Repository implementations
+   - `mapper/` - DTO ↔ Domain mappers
+
+2. **domain/** - Business logic
+   - `model/` - Domain models (pure Kotlin)
+   - `repository/` - Repository interfaces
+   - `usecase/` - Business logic
+
+3. **di/** - Dependency injection
+   - One Koin module per feature
+
+### Dependency Direction Within Feature
+```
+data → domain ← (nothing)
+```
+- `data/` depends on `domain/`
+- `domain/` depends on NOTHING (except core)
+
+## Code Organization Rules
+
+### Naming Conventions
+
+**Features:**
+- Package: `feature.[feature_name]` (e.g., `feature.news`, `feature.settings`)
+- Lowercase, singular preferred
+
+**Classes:**
+- PascalCase: `NewsFeedRepository`
+- Feature prefix optional but consistent
+
+**Files:**
+- Use cases: `[Action][Entity]UseCase.kt`
+- Repositories: `[Entity]Repository.kt` (interface), `[Entity]RepositoryImpl.kt` (impl)
+- DTOs: `[Entity]Dto.kt`
+- Entities: `[Entity]Entity.kt`
+- Modules: `[Feature]Module.kt`
+
+### File Location Rules
+
+```kotlin
+// ✅ CORRECT - Shared utilities in core
+core/data/remote/util/ApiErrorHandler.kt
+core/domain/model/Result.kt
+core/domain/model/AppException.kt
+
+// ✅ CORRECT - Feature-specific in feature
+feature/news/data/remote/api/NewsApiService.kt
+feature/news/domain/model/NewsFeed.kt
+feature/news/di/NewsModule.kt
+
+// ❌ WRONG - Feature-specific in core
+core/domain/model/NewsFeed.kt  // Should be in feature/news/
+
+// ❌ WRONG - Shared utility in feature
+feature/news/data/util/ApiErrorHandler.kt  // Should be in core/
+```
+
+## Core Module Rules
+
+### What Goes in Core:
+
+**✅ Put in Core:**
+- Result wrapper
+- AppException types
+- API error handling
+- JSON serialization config
+- Mapper interface
+- PaginatedData model
+- Database instance
+- PreferencesManager interface
+- Date formatting utilities
+- Network configuration
+- Logging utilities
+
+**❌ Don't Put in Core:**
+- Feature-specific models
+- Feature-specific DTOs
+- Feature-specific use cases
+- Feature-specific repositories
+- Feature business logic
+
+### Core Module Structure
+
+```kotlin
+core/
+├── data/
+│   ├── remote/
+│   │   ├── util/              # API utilities
+│   │   └── base/              # Base API classes
+│   ├── local/
+│   │   ├── database/          # Room database
+│   │   └── preferences/       # DataStore
+│   └── mapper/                # Mapper interface
+├── domain/
+│   ├── model/                 # Shared domain models
+│   └── config/                # App configuration
+├── di/                        # Core DI modules
+└── util/                      # Utilities
+```
+
+## Environment Configuration (AppConfig)
+
+### CRITICAL: All Remote Services MUST Use AppConfig
+
+**Rule:** Every API service, remote data source, or network client MUST inject and use `AppConfig` for base URLs and environment-specific settings.
+
+### AppConfig Structure
+
+```kotlin
+// ✅ CORRECT - AppConfig in core/domain/config
+core/domain/config/
+├── AppConfig.kt                    # Interface (commonMain)
+├── AndroidAppConfig.kt             # Android implementation (androidMain)
+└── IosAppConfig.kt                 # iOS implementation (iosMain)
+
+// AppConfig.kt (commonMain)
+interface AppConfig {
+    val baseApiUrl: String
+    val flavorName: String
+    // Add other environment-specific configs here
+}
+
+expect fun createAppConfig(): AppConfig
+```
+
+### Platform Implementations
+
+**Android (uses BuildConfig):**
+```kotlin
+// AndroidAppConfig.kt (androidMain)
+class AndroidAppConfig : AppConfig {
+    override val baseApiUrl: String = BuildConfig.BASE_API_URL
+    override val flavorName: String = BuildConfig.FLAVOR_NAME
+}
+
+actual fun createAppConfig(): AppConfig = AndroidAppConfig()
+
+// shared/build.gradle.kts
+android {
+    buildFeatures {
+        buildConfig = true
+    }
+    defaultConfig {
+        buildConfigField("String", "BASE_API_URL", "\"https://api.example.com/v1/\"")
+        buildConfigField("String", "FLAVOR_NAME", "\"dev\"")
+    }
+}
+```
+
+**iOS (uses Info.plist or hardcoded):**
+```kotlin
+// IosAppConfig.kt (iosMain)
+class IosAppConfig : AppConfig {
+    // Option 1: Hardcoded for now
+    override val baseApiUrl: String = "https://api.example.com/v1/"
+    override val flavorName: String = "dev"
+    
+    // Option 2: Read from Info.plist (future enhancement)
+    // val url = NSBundle.mainBundle.objectForInfoDictionaryKey("BASE_API_URL") as? String
+}
+
+actual fun createAppConfig(): AppConfig = IosAppConfig()
+```
+
+### Dependency Injection Setup
+
+```kotlin
+// ✅ CORRECT - CoreConfigModule provides AppConfig
+// core/di/CoreConfigModule.kt
+val coreConfigModule = module {
+    single { createAppConfig() }
+}
+
+// Initialize in app
+startKoin {
+    modules(
+        coreConfigModule,      // MUST be included
+        coreNetworkModule,
+        // ... other modules
+    )
+}
+```
+
+### Using AppConfig in API Services
+
+```kotlin
+// ✅ CORRECT - Inject AppConfig into API service
+class NewsApiService(
+    private val httpClient: HttpClient,
+    private val appConfig: AppConfig  // REQUIRED
+) {
+    private val endpoint = "${appConfig.baseApiUrl}article"
+    
+    suspend fun fetchArticles(page: Int): ArticleListResponse {
+        return httpClient.get(endpoint) {
+            parameter("page", page)
+        }.body()
+    }
+}
+
+// ✅ CORRECT - DI module injects AppConfig
+val newsModule = module {
+    single { NewsApiService(get(), get()) }  // get() resolves AppConfig
+}
+
+// ❌ WRONG - Hardcoded URL
+class NewsApiService(private val httpClient: HttpClient) {
+    private val endpoint = "https://api.example.com/v1/article"  // NEVER DO THIS!
+}
+
+// ❌ WRONG - URL in companion object
+class NewsApiService(private val httpClient: HttpClient) {
+    companion object {
+        const val BASE_URL = "https://api.example.com/v1/"  // NEVER DO THIS!
+    }
+}
+```
+
+### AppConfig Best Practices
+
+**✅ DO:**
+- Always inject `AppConfig` into services that need URLs or environment settings
+- Use `AppConfig` for: base URLs, API keys, feature flags, environment names
+- Keep `AppConfig` in `core/domain/config/`
+- Provide platform-specific implementations via `expect/actual`
+- Include `coreConfigModule` in Koin initialization
+
+**❌ DON'T:**
+- Hardcode URLs anywhere in the codebase
+- Create feature-specific config classes (use shared `AppConfig`)
+- Put configuration in companion objects or constants
+- Skip injecting `AppConfig` into remote services
+
+### iOS Koin Initialization
+
+**CRITICAL:** iOS apps must call `initKoin()` before any UI is created.
+
+```kotlin
+// ✅ CORRECT - KoinHelper.kt (composeApp/iosMain)
+fun initKoin() {
+    startKoin {
+        modules(
+            coreConfigModule,      // Include config module
+            coreNetworkModule,
+            // ... other modules
+        )
+    }
+}
+
+// iOSApp.swift
+import ComposeApp
+
+@main
+struct iOSApp: App {
+    init() {
+        KoinHelperKt.initKoin()  // MUST call before UI
+    }
+    
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+        }
+    }
+}
+
+// ❌ WRONG - Not calling initKoin()
+@main
+struct iOSApp: App {
+    var body: some Scene {
+        WindowGroup {
+            ContentView()  // Koin not initialized - will crash!
+        }
+    }
+}
+```
+
+### Adding New Environment Variables
+
+When adding new environment-specific configuration:
+
+1. **Add to AppConfig interface:**
+```kotlin
+interface AppConfig {
+    val baseApiUrl: String
+    val flavorName: String
+    val newSetting: String  // Add here
+}
+```
+
+2. **Update Android implementation:**
+```kotlin
+class AndroidAppConfig : AppConfig {
+    override val newSetting: String = BuildConfig.NEW_SETTING
+}
+
+// build.gradle.kts
+buildConfigField("String", "NEW_SETTING", "\"value\"")
+```
+
+3. **Update iOS implementation:**
+```kotlin
+class IosAppConfig : AppConfig {
+    override val newSetting: String = "value"
+}
+```
+
+4. **Use in services:**
+```kotlin
+class MyApiService(
+    private val httpClient: HttpClient,
+    private val appConfig: AppConfig
+) {
+    private val setting = appConfig.newSetting
+}
+
+
+## Dependency Injection Rules
+
+### Feature Modules
+
+```kotlin
+// ✅ CORRECT - One module per feature
+val newsModule = module {
+    // API
+    single<NewsApiService> { NewsApiServiceImpl(get(), get(), get()) }
+    
+    // DAO
+    single { get<AppDatabase>().newsFeedDao() }
+    
+    // Repository
+    single<NewsFeedRepository> { NewsFeedRepositoryImpl(get(), get(), get()) }
+    
+    // Use Cases
+    factory { GetNewsFeedUseCase(get()) }
+    factory { GetNewsDetailUseCase(get()) }
+}
+
+// ❌ WRONG - Multiple features in one module
+val sharedModule = module {
+    single<NewsApiService> { NewsApiServiceImpl(get()) }
+    single<SettingsRepository> { SettingsRepositoryImpl(get()) }
+}
+```
+
+### Module Organization
+
+```kotlin
+// Application initialization
+class MyApp : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        startKoin {
+            androidContext(this@MyApp)
+            modules(
+                // Core modules first
+                coreNetworkModule,
+                coreDatabaseModule,
+                corePreferencesModule,
+                
+                // Feature modules
+                newsModule,
+                settingsModule,
+                
+                // App module last
+                appModule
+            )
+        }
+    }
+}
+```
+
+## Android UI Organization
+
+### Feature-Based UI Structure
+
+```kotlin
+composeApp/src/main/kotlin/
+├── core/
+│   ├── theme/                 # Shared theme
+│   ├── navigation/            # Navigation setup
+│   └── components/            # Shared components
+└── feature/
+    ├── news/
+    │   ├── list/
+    │   │   ├── NewsFeedScreen.kt
+    │   │   ├── NewsFeedViewModel.kt
+    │   │   └── components/
+    │   └── detail/
+    │       ├── NewsDetailScreen.kt
+    │       └── NewsDetailViewModel.kt
+    └── settings/
+        ├── SettingsScreen.kt
+        ├── SettingsViewModel.kt
+        └── components/
+```
+
+### UI Rules
+
+```kotlin
+// ✅ CORRECT - ViewModel uses use cases from same feature
+class NewsFeedViewModel(
+    private val getNewsFeedUseCase: GetNewsFeedUseCase,
+    private val refreshNewsFeedUseCase: RefreshNewsFeedUseCase
+) : ViewModel()
+
+// ❌ WRONG - ViewModel uses use cases from different feature
+class NewsFeedViewModel(
+    private val getNewsFeedUseCase: GetNewsFeedUseCase,
+    private val getSettingsUseCase: GetSettingsUseCase  // WRONG!
+) : ViewModel()
+```
+
+## Navigation Between Features
+
+```kotlin
+// ✅ CORRECT - Navigation at app level
+NavHost(navController, startDestination = Screen.NewsFeedList.route) {
+    // News feature screens
+    composable(Screen.NewsFeedList.route) {
+        NewsFeedScreen(
+            onNewsItemClick = { id -> navController.navigate(Screen.NewsDetail.createRoute(id)) },
+            onSettingsClick = { navController.navigate(Screen.Settings.route) }
+        )
+    }
+    
+    // Settings feature screens
+    composable(Screen.Settings.route) {
+        SettingsScreen(
+            onBackClick = { navController.popBackStack() }
+        )
+    }
+}
+```
+
+## Error Handling Rules
+
+### Use Core Error Types
+
+```kotlin
+// ✅ CORRECT - Feature uses core error types
+suspend fun getNewsFeed(): Result<List<NewsFeed>> {
+    return try {
+        val data = apiService.getNewsFeed()
+        Result.Success(data)
+    } catch (e: Exception) {
+        Result.Error(ApiErrorHandler.handleError(e))  // From core
+    }
+}
+
+// ❌ WRONG - Feature creates own error types
+sealed class NewsException : Exception()  // Should use core AppException
+```
+
+## Testing Rules
+
+### Test Structure
+
+```kotlin
+// Tests mirror the source structure
+shared/src/commonTest/kotlin/
+├── core/
+│   └── data/
+│       └── util/
+│           └── ApiErrorHandlerTest.kt
+└── feature/
+    ├── news/
+    │   ├── domain/
+    │   │   └── usecase/
+    │   │       └── GetNewsFeedUseCaseTest.kt
+    │   └── data/
+    │       └── repository/
+    │           └── NewsFeedRepositoryImplTest.kt
+    └── settings/
+        └── domain/
+            └── usecase/
+                └── GetSettingsUseCaseTest.kt
+```
+
+### Test Isolation
+
+```kotlin
+// ✅ CORRECT - Test only the feature being tested
+class GetNewsFeedUseCaseTest {
+    private lateinit var fakeRepository: FakeNewsFeedRepository
+    private lateinit var useCase: GetNewsFeedUseCase
+    
+    @Before
+    fun setup() {
+        fakeRepository = FakeNewsFeedRepository()
+        useCase = GetNewsFeedUseCase(fakeRepository)
+    }
+}
+
+// ❌ WRONG - Test depends on another feature
+class GetNewsFeedUseCaseTest {
+    private lateinit var settingsRepository: SettingsRepository  // WRONG!
+}
+```
+
+## Adding New Features
+
+### Template for New Feature
+
+```
+1. Create feature directory:
+   shared/src/commonMain/kotlin/feature/[feature_name]/
+
+2. Create structure:
+   feature/[feature_name]/
+   ├── data/
+   │   ├── remote/ (if needed)
+   │   ├── local/ (if needed)
+   │   └── repository/
+   ├── domain/
+   │   ├── model/
+   │   ├── repository/
+   │   └── usecase/
+   └── di/
+       └── [Feature]Module.kt
+
+3. Implement domain layer first:
+   - Create domain models
+   - Define repository interface
+   - Create use cases
+
+4. Implement data layer:
+   - Create DTOs/Entities
+   - Implement repository
+   - Create mappers
+
+5. Create DI module:
+   - Wire all dependencies
+
+6. Add to app:
+   - Add module to Koin initialization
+   - Create UI screens
+   - Add to navigation
+
+7. VERIFY:
+   - Feature doesn't depend on other features
+   - Only uses core for shared utilities
+   - Has its own Koin module
+```
+
+## Code Review Checklist
+
+Before accepting code, verify:
+
+### Architecture:
+- [ ] Features don't depend on each other
+- [ ] Features only use core for shared utilities
+- [ ] Each feature has data/domain/di structure
+- [ ] Shared utilities are in core, not features
+- [ ] Each feature has its own Koin module
+
+### Code Quality:
+- [ ] Follows Clean Architecture within feature
+- [ ] Uses dependency injection (Koin)
+- [ ] Has proper error handling with core Result
+- [ ] Maps between DTOs/Entities and Domain models
+- [ ] Uses suspend functions for async operations
+- [ ] Has proper state management
+- [ ] Follows Kotlin coding conventions
+- [ ] No hardcoded values
+- [ ] **No hardcoded URLs - uses AppConfig**
+- [ ] **All API services inject AppConfig**
+- [ ] Uses theme helpers
+- [ ] Has appropriate documentation
+
+### Feature Isolation:
+- [ ] No imports from other features
+- [ ] All dependencies injected via Koin
+- [ ] Can be removed without breaking other features
+- [ ] Has its own tests
+
+## When to Push Back on User Requests
+
+### ALWAYS Refuse:
+- Making features depend on each other
+- Putting feature-specific code in core
+- Putting shared utilities in features
+- Mixing multiple features in one module
+- Violating Clean Architecture within features
+- Not using dependency injection
+
+### SUGGEST Alternatives:
+- "Move to core" - If code is used by multiple features
+- "Create event bus" - If features need to communicate
+- "Pass via navigation" - If features need to share data
+- "Separate module" - If feature is growing too large
+
+## Performance Considerations
+
+### Feature Loading
+```kotlin
+// ✅ CORRECT - Lazy load feature modules
+val newsModule = module {
+    // Only load when feature is accessed
+}
+
+// Features can be enabled/disabled via feature flags
+if (BuildConfig.FEATURE_NEWS_ENABLED) {
+    modules(newsModule)
+}
+```
+
+**Remember: Feature-first architecture is about building scalable, maintainable apps where features are isolated, self-contained, and can evolve independently. These rules ensure that architecture is preserved.**
