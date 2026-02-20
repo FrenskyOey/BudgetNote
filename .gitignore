@@ -1,0 +1,296 @@
+# Kotlin Multiplatform .gitignore
+
+### Gradle ###
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+gradle-app.setting
+!gradle-wrapper.jar
+.gradletasknamecache
+
+### Android ###
+*.apk
+*.ap_
+*.aab
+*.dex
+*.class
+bin/
+gen/
+out/
+release/
+
+# Android Studio
+captures/
+.externalNativeBuild
+.cxx
+*.iml
+.idea/
+*.hprof
+.navigation/
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# NDK
+obj/
+
+# Android Profiling
+*.hprof
+
+### iOS ###
+**/iosApp/Pods/
+**/iosApp/*.xcworkspace
+!**/iosApp/*.xcworkspace/contents.xcworkspacedata
+**/iosApp/*.xcodeproj
+!**/iosApp/*.xcodeproj/project.pbxproj
+!**/iosApp/*.xcodeproj/xcshareddata/
+DerivedData/
+*.moved-aside
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+*.xccheckout
+*.xcscmblueprint
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+timeline.xctimeline
+playground.xcworkspace
+
+# Swift Package Manager
+.build/
+Packages/
+Package.pins
+Package.resolved
+
+### Kotlin ###
+*.kotlin_module
+*.kotlin_metadata
+*.klib
+
+### IntelliJ IDEA ###
+.idea/
+*.iml
+*.ipr
+*.iws
+.idea_modules/
+out/
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/usage.statistics.xml
+.idea/dictionaries
+.idea/shelf
+.idea/misc.xml
+.idea/modules.xml
+.idea/gradle.xml
+.idea/libraries
+.idea/jarRepositories.xml
+.idea/compiler.xml
+.idea/caches
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+.idea/deploymentTargetDropDown.xml
+
+### VS Code ###
+.vscode/
+*.code-workspace
+
+### Cursor ###
+.cursor/
+
+### macOS ###
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+### Windows ###
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+### Linux ###
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+### Logs ###
+*.log
+logs/
+*.log.*
+
+### Database ###
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+### Secrets & API Keys ###
+secrets.properties
+keystore.properties
+*.jks
+*.keystore
+google-services.json
+GoogleService-Info.plist
+.env
+.env.local
+.env.*.local
+
+### BuildConfig (keep template, ignore generated) ###
+# Note: BuildConfig files will be generated per flavor
+
+### Backup files ###
+*.bak
+*.backup
+*.tmp
+*.temp
+
+### Compiled source ###
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+### Archives ###
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+### Testing ###
+coverage/
+.coverage
+htmlcov/
+.pytest_cache/
+test-results/
+test-reports/
+
+### Room schemas (optional - you may want to commit these) ###
+# schemas/
+
+### Ktor ###
+ktor_*.log
+
+### Koin ###
+# Usually no specific ignores needed
+
+### Documentation (optional) ###
+# docs/build/
+
+### Misc ###
+*.swp
+*.swo
+*~.nib
+*.moved-aside
+*.launch
+.settings/
+.loadpath
+.recommenders
+.externalToolBuilders/
+*.launch
+*.pydevproject
+.metadata
+.gradle
+local.properties
+.classpath
+.project
+.loadpath
+.externalToolBuilders/
+.settings/
+
+# Cache directories
+.sass-cache/
+.cache/
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Packages
+*.egg
+*.egg-info
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+
+### Generated files ###
+generated/
+gen/
+R.txt
+proguard/
+mapping.txt
+seeds.txt
+unused.txt
+
+### Signing ###
+signing/
+*.keystore
+*.jks
+release.keystore
+
+### Firebase ###
+google-services.json
+GoogleService-Info.plist
+.firebase/
+firebase-debug.log
+
+### Fastlane ###
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+fastlane/readme.md
