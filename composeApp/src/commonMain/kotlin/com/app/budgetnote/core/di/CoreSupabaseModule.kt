@@ -10,11 +10,10 @@ import core.domain.config.createAppConfig
 val coreSupabaseModule = module {
     single<SupabaseClient> {
         val config = createAppConfig()
-        val supabaseUrl = config.supabaseUrl
         val supabaseKey = config.supabaseAnonKey
         
         createSupabaseClient(
-             supabaseUrl = supabaseUrl,
+             supabaseUrl = config.baseApiUrl,
              supabaseKey = supabaseKey
          ) {
              install(Auth)

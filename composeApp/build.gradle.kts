@@ -1,5 +1,7 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
+import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -9,6 +11,7 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.room)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.buildkonfig)
 }
 
 kotlin {
@@ -172,7 +175,6 @@ android {
             resValue("string", "app_name", "BudgetNote (Staging)")
             buildConfigField("String", "BASE_API_URL", "\"https://cd841015-7e2e-4a18-8082-a7c23d45097e.mock.pstmn.io/v1/\"")
             buildConfigField("String", "FLAVOR_NAME", "\"Staging\"")
-            buildConfigField("String", "SUPABASE_URL", "\"\"")
             buildConfigField("String", "SUPABASE_ANON_KEY", "\"\"")
         }
         create("production") {
@@ -180,7 +182,6 @@ android {
             resValue("string", "app_name", "BudgetNote")
             buildConfigField("String", "BASE_API_URL", "\"https://cd841015-7e2e-4a18-8082-a7c23d45097e.mock.pstmn.io/v1/\"")
             buildConfigField("String", "FLAVOR_NAME", "\"Production\"")
-            buildConfigField("String", "SUPABASE_URL", "\"\"")
             buildConfigField("String", "SUPABASE_ANON_KEY", "\"\"")
         }
     }
@@ -243,4 +244,66 @@ compose.resources {
     generateResClass = always
 }
 
+buildkonfig {
+    packageName = "com.app.budgetnote.core.config"
+    
+    val localProperties = Properties()
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use { localProperties.load(it) }
+    }
 
+    // Default configuration (statically acts as Staging)
+    defaultConfigs {
+        buildConfigField(STRING, "BASE_API_URL", localProperties.getProperty("staging.BASE_API_URL") ?: "")
+        buildConfigField(STRING, "FLAVOR_NAME", localProperties.getProperty("staging.FLAVOR_NAME") ?: "staging")
+        buildConfigField(STRING, "SUPABASE_KEY", localProperties.getProperty("staging.SUPABASE_KEY") ?: "")
+        buildConfigField(STRING, "GOOGLE_SIGNIN_SERVER_ID", localProperties.getProperty("staging.GOOGLE_SIGNIN_SERVER_ID") ?: "")
+        buildConfigField(STRING, "FIREBASE_ADMIN_API_KEY", localProperties.getProperty("staging.FIREBASE_ADMIN_API_KEY") ?: "")
+        buildConfigField(STRING, "PLATFORM", "Unknown")
+    }
+
+    // Explicit Staging Config (Fallback if explicitly configured with flavor `staging`)
+    defaultConfigs("staging") {
+        buildConfigField(STRING, "BASE_API_URL", localProperties.getProperty("staging.BASE_API_URL") ?: "")
+        buildConfigField(STRING, "FLAVOR_NAME", localProperties.getProperty("staging.FLAVOR_NAME") ?: "staging")
+        buildConfigField(STRING, "SUPABASE_KEY", localProperties.getProperty("staging.SUPABASE_KEY") ?: "")
+        buildConfigField(STRING, "GOOGLE_SIGNIN_SERVER_ID", localProperties.getProperty("staging.GOOGLE_SIGNIN_SERVER_ID") ?: "")
+        buildConfigField(STRING, "FIREBASE_ADMIN_API_KEY", localProperties.getProperty("staging.FIREBASE_ADMIN_API_KEY") ?: "")
+        buildConfigField(STRING, "PLATFORM", "Unknown")
+    }
+
+    // Explicit Production Config
+    defaultConfigs("production") {
+        buildConfigField(STRING, "BASE_API_URL", localProperties.getProperty("production.BASE_API_URL") ?: "")
+        buildConfigField(STRING, "FLAVOR_NAME", localProperties.getProperty("production.FLAVOR_NAME") ?: "production")
+        buildConfigField(STRING, "SUPABASE_KEY", localProperties.getProperty("production.SUPABASE_KEY") ?: "")
+        buildConfigField(STRING, "GOOGLE_SIGNIN_SERVER_ID", localProperties.getProperty("production.GOOGLE_SIGNIN_SERVER_ID") ?: "")
+        buildConfigField(STRING, "FIREBASE_ADMIN_API_KEY", localProperties.getProperty("production.FIREBASE_ADMIN_API_KEY") ?: "")
+        buildConfigField(STRING, "PLATFORM", "Unknown")
+    }
+
+    // Android Target Overrides
+    targetConfigs {
+        create("android") {
+            buildConfigField(STRING, "PLATFORM", "Android")
+        }
+    }
+
+    // iOS Target Overrides
+    targetConfigs {
+        create("iosArm64") {
+            buildConfigField(STRING, "PLATFORM", "Ios")
+        }
+        create("iosSimulatorArm64") {
+            buildConfigField(STRING, "PLATFORM", "Ios")
+        }
+    }
+
+    // Desktop/JVM Target Overrides
+    targetConfigs {
+        create("desktop") {
+            buildConfigField(STRING, "PLATFORM", "Desktop")
+        }
+    }
+}

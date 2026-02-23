@@ -261,15 +261,37 @@ git clone https://github.com/FrenskyOey/BudgetNote.git
 cd budgetNote
 ```
 
-**Android:**
+### Environment Configuration
+
+Before building the app, you must set up your environment variables using `local.properties`. This project uses `com.codingfeline.buildkonfig` to securely manage API keys and supports `staging` and `production` flavors.
+
+1. Copy the example configuration file:
 ```bash
-./gradlew :composeApp:assembleDebug
+cp local.example.properties local.properties
+```
+2. Open `local.properties` and replace the placeholder values with your actual API keys.
+
+> ⚠️ **Note:** `local.properties` is ignored by git to prevent leaking sensitive keys.
+
+### Building & Running
+
+**Android:**
+To build a specific flavor, append `-Pbuildkonfig.flavor=<flavor>` to your gradle command:
+
+*Staging:*
+```bash
+./gradlew :composeApp:assembleStagingDebug -Pbuildkonfig.flavor=staging
+```
+
+*Production:*
+```bash
+./gradlew :composeApp:assembleProductionDebug -Pbuildkonfig.flavor=production
 ```
 
 **iOS:**
-Open `/iosApp` in Xcode and press Run, or build from terminal:
+Open `/iosApp` in Xcode and press Run, or build from terminal. You can optionally supply the flavor (defaults to staging keys if not supplied):
 ```bash
-./gradlew :composeApp:iosSimulatorArm64Test
+./gradlew :composeApp:iosSimulatorArm64Test -Pbuildkonfig.flavor=staging
 ```
 
 ### Using as AI Boilerplate

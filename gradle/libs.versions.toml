@@ -7,6 +7,7 @@ kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref =
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 room = { id = "androidx.room", version.ref = "androidx-room" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+buildkonfig = { id = "com.codingfeline.buildkonfig", version.ref = "buildkonfig" }
 
 [versions]
 agp = "8.7.3"
@@ -39,6 +40,7 @@ sqlite = "2.5.0"
 okio = "3.9.0"
 multiplatform-settings = "1.2.0"
 androidx-security-crypto = "1.1.0-alpha06"
+buildkonfig = "0.15.2"
 
 [libraries]
 okio = { module = "com.squareup.okio:okio", version.ref = "okio" }
