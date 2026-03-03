@@ -7,11 +7,11 @@ description: Naming conventions, file rules, and error handling
 ## Naming Conventions
 
 **Features:**
-- Package: `feature.[feature_name]` (e.g., `feature.news`, `feature.settings`)
+- Package: `feature.[feature_name]` (e.g., `feature.onboarding`, `feature.budget`, `feature.settings`)
 - Lowercase, singular preferred
 
 **Classes:**
-- PascalCase: `NewsFeedRepository`
+- PascalCase: `AuthRepository`, `BudgetRepository`
 - Feature prefix optional but consistent
 
 **Files:**
@@ -22,10 +22,10 @@ description: Naming conventions, file rules, and error handling
 - Modules: `[Feature]Module.kt`
 
 **Data Layer (feature/data):**
-- API Interface: `[Feature]ApiService.kt` (e.g., `NewsApiService`)
-- DAO Interface: `[Feature]Dao.kt` (e.g., `NewsDao`)
-- Data Source Interface: `[Feature][SourceType]DataSource.kt` (e.g., `NewsRemoteDataSource`)
-- Data Source Implementation: `[Feature][SourceType]DataSourceImpl.kt` (e.g., `NewsRemoteDataSourceImpl`)
+- API Interface: `[Feature]ApiService.kt` (e.g., `AuthApiService`, `BudgetApiService`)
+- DAO Interface: `[Feature]Dao.kt` (e.g., `BudgetDao`, `TransactionDao`)
+- Data Source Interface: `[Feature][SourceType]DataSource.kt` (e.g., `AuthDataSource.Remote`, `AuthDataSource.Local`)
+- Data Source Implementation: `[Feature][SourceType]DataSourceImpl.kt` (e.g., `AuthRemoteDataSourceImpl`, `AuthLocalDataSourceImpl`)
 
 ## File Location Rules
 
@@ -39,17 +39,17 @@ description: Naming conventions, file rules, and error handling
 
 ```kotlin
 // CORRECT - Feature uses core error types
-suspend fun getNewsFeed(): Result<List<NewsFeed>> {
+suspend fun login(credentials: LoginCredentials): Result<User> {
     return try {
-        val data = apiService.getNewsFeed()
-        Result.Success(data)
+        val response = remoteDataSource.login(credentials)
+        Result.Success(response.toDomain())
     } catch (e: Exception) {
         Result.Error(ApiErrorHandler.handleError(e))  // From core
     }
 }
 
 // WRONG - Feature creates own error types
-sealed class NewsException : Exception()  // Should use core AppException
+sealed class AuthException : Exception()  // Should use core AppException
 ```
 
 ---
@@ -73,8 +73,8 @@ data class BaseResponse<T>(
 
 ```kotlin
 // CORRECT - Return BaseResponse<T>
-interface NewsDetailApiService {
-    suspend fun getNewsDetail(id: Int): BaseResponse<ArticleDetailResponse>
+interface AuthApiService {
+    suspend fun login(request: LoginRequest): BaseResponse<LoginResponse>
 }
 ```
 
@@ -82,13 +82,13 @@ interface NewsDetailApiService {
 
 ```kotlin
 // CORRECT - Ktor will deserialize into BaseResponse
-class NewsDetailApiServiceImpl(
+class AuthApiServiceImpl(
     private val httpClient: HttpClient,
     private val appConfig: AppConfig
-) : NewsDetailApiService {
-    override suspend fun getNewsDetail(id: Int): BaseResponse<ArticleDetailResponse> {
-        return httpClient.get("${appConfig.baseApiUrl}details") {
-            parameter("id", id)
+) : AuthApiService {
+    override suspend fun login(request: LoginRequest): BaseResponse<LoginResponse> {
+        return httpClient.post("${appConfig.baseApiUrl}auth/login") {
+            setBody(request)
         }.body()
     }
 }
@@ -98,16 +98,16 @@ class NewsDetailApiServiceImpl(
 
 ```kotlin
 // CORRECT - Unwrap BaseResponse and check isSuccess
-class NewsDetailRemoteDataSourceImpl(
-    private val apiService: NewsDetailApiService
-) : NewsDetailDataSource.Remote {
-    override suspend fun getNewsDetail(id: Int): ArticleDetailResponse {
+class AuthRemoteDataSourceImpl(
+    private val apiService: AuthApiService
+) : AuthDataSource.Remote {
+    override suspend fun login(request: LoginRequest): LoginResponse {
         return try {
-            val response = apiService.getNewsDetail(id)
+            val response = apiService.login(request)
             if (response.isSuccess) {
                 response.data
             } else {
-                throw AppException.UnknownError("API request failed with is_success=false")
+                throw AppException.AuthException("Login failed: isSuccess=false")
             }
         } catch (e: Exception) {
             throw ApiErrorHandler.handleError(e)
@@ -130,15 +130,15 @@ class NewsDetailRemoteDataSourceImpl(
 
 ```kotlin
 // WRONG - Unclear naming
-fun proc(d: List<N>): List<N> {
+fun proc(d: List<T>): List<T> {
     return d.filter { it.s == 1 }.map { it.copy(s = 2) }
 }
 
 // CORRECT - Clear, descriptive naming
-fun processActiveNews(newsItems: List<NewsItem>): List<NewsItem> {
-    return newsItems
-        .filter { it.status == NewsStatus.ACTIVE }
-        .map { it.copy(status = NewsStatus.PUBLISHED) }
+fun filterActiveBudgets(budgets: List<Budget>): List<Budget> {
+    return budgets
+        .filter { it.status == BudgetStatus.ACTIVE }
+        .map { it.copy(status = BudgetStatus.ARCHIVED) }
 }
 ```
 
@@ -151,16 +151,16 @@ fun loadAndProcessData() {
 }
 
 // CORRECT - Single responsibility, small functions
-fun loadNewsData(): Result<List<NewsItem>> {
-    return repository.getNews()
+suspend fun loadUserProfile(): Result<User> {
+    return repository.getCurrentUser()
 }
 
-fun filterActiveNews(items: List<NewsItem>): List<NewsItem> {
-    return items.filter { it.isActive }
+fun filterValidTransactions(items: List<Transaction>): List<Transaction> {
+    return items.filter { it.isValid }
 }
 
-fun mapToUiState(items: List<NewsItem>): NewsUiState {
-    return NewsUiState(items = items.map { it.toUiModel() })
+fun mapToUiState(items: List<Transaction>): TransactionUiState {
+    return TransactionUiState(items = items.map { it.toUiModel() })
 }
 ```
 
@@ -168,21 +168,21 @@ fun mapToUiState(items: List<NewsItem>): NewsUiState {
 
 ```kotlin
 // WRONG - Monolithic file with multiple concerns
-// NewsScreen.kt (1200+ lines with UI, business logic, mappers)
+// BudgetScreen.kt (1200+ lines with UI, business logic, mappers)
 
 // CORRECT - Split into focused files
-// NewsScreen.kt         - UI composables only
-// NewsViewModel.kt      - State management
-// NewsUiState.kt        - UI state models
-// NewsMapper.kt         - Domain to UI mapping
+// BudgetScreen.kt         - UI composables only
+// BudgetViewModel.kt      - State management
+// BudgetUiState.kt        - UI state models
+// BudgetMapper.kt         - Domain to UI mapping
 ```
 
 ### No Deep Nesting (>4 levels)
 
 ```kotlin
 // WRONG - Deep nesting (5+ levels)
-fun processNews(news: List<NewsItem>?) {
-    news?.let { items ->
+fun processTransactions(transactions: List<Transaction>?) {
+    transactions?.let { items ->
         items.forEach { item ->
             if (item.isValid) {
                 item.categories.forEach { category ->
@@ -196,10 +196,10 @@ fun processNews(news: List<NewsItem>?) {
 }
 
 // CORRECT - Early returns and extracted functions
-fun processNews(news: List<NewsItem>?) {
-    if (news.isNullOrEmpty()) return
-    
-    news.filter { it.isValid }
+fun processTransactions(transactions: List<Transaction>?) {
+    if (transactions.isNullOrEmpty()) return
+
+    transactions.filter { it.isValid }
         .flatMap { it.categories }
         .filter { it.isActive }
         .forEach { processCategory(it) }
@@ -210,21 +210,21 @@ fun processNews(news: List<NewsItem>?) {
 
 ```kotlin
 // WRONG - Swallowing exceptions
-fun fetchData(): Data? {
+fun fetchBudget(): Budget? {
     return try {
-        api.getData()
+        api.getBudget()
     } catch (e: Exception) {
         null  // Silent failure, no context
     }
 }
 
 // CORRECT - Proper error propagation with context
-suspend fun fetchData(): Result<Data> {
+suspend fun fetchBudget(): Result<Budget> {
     return try {
-        val data = api.getData()
+        val data = api.getBudget()
         Result.Success(data)
     } catch (e: Exception) {
-        Logger.e("Failed to fetch data", e)
+        Logger.e("Failed to fetch budget", e)
         Result.Error(ApiErrorHandler.handleError(e))
     }
 }
@@ -234,20 +234,20 @@ suspend fun fetchData(): Result<Data> {
 
 ```kotlin
 // WRONG - Debug logs left in code
-fun processPayment(amount: Double) {
-    println("Processing payment: $amount")  // WRONG
-    Log.d("Payment", "Amount: $amount")     // WRONG in production code
+fun processTransaction(amount: Double) {
+    println("Processing transaction: $amount")  // WRONG
+    Log.d("Transaction", "Amount: $amount")     // WRONG in production code
 }
 
 // CORRECT - Use proper logging with levels
-fun processPayment(amount: Double) {
-    Logger.d { "Processing payment" }  // Conditionally stripped in release
+fun processTransaction(amount: Double) {
+    Logger.d { "Processing transaction" }  // Conditionally stripped in release
 }
 
-// Or remove entirely for sensitive operations
-fun processPayment(amount: Double) {
+// Or remove entirely for sensitive financial operations
+fun processTransaction(amount: Double) {
     // No logging for sensitive financial data
-    paymentProcessor.process(amount)
+    transactionProcessor.process(amount)
 }
 ```
 
@@ -255,13 +255,13 @@ fun processPayment(amount: Double) {
 
 ```kotlin
 // WRONG - Magic numbers and hardcoded strings
-fun fetchNews() {
-    val response = api.getNews(limit = 20, timeout = 30000)
+fun fetchTransactions() {
+    val response = api.getTransactions(limit = 20, timeout = 30000)
     if (response.code == 200) { ... }
 }
 
 // CORRECT - Named constants and configuration
-object NewsConfig {
+object TransactionConfig {
     const val DEFAULT_PAGE_SIZE = 20
     const val API_TIMEOUT_MS = 30_000L
 }
@@ -270,10 +270,10 @@ object HttpStatus {
     const val OK = 200
 }
 
-fun fetchNews() {
-    val response = api.getNews(
-        limit = NewsConfig.DEFAULT_PAGE_SIZE,
-        timeout = NewsConfig.API_TIMEOUT_MS
+fun fetchTransactions() {
+    val response = api.getTransactions(
+        limit = TransactionConfig.DEFAULT_PAGE_SIZE,
+        timeout = TransactionConfig.API_TIMEOUT_MS
     )
     if (response.code == HttpStatus.OK) { ... }
 }
@@ -283,38 +283,38 @@ fun fetchNews() {
 
 ```kotlin
 // WRONG - Mutable state
-class NewsViewModel {
-    private val _items = mutableListOf<NewsItem>()
-    
-    fun addItem(item: NewsItem) {
+class BudgetViewModel {
+    private val _items = mutableListOf<Transaction>()
+
+    fun addItem(item: Transaction) {
         _items.add(item)  // Mutation!
     }
-    
+
     fun clearItems() {
         _items.clear()  // Mutation!
     }
 }
 
 // CORRECT - Immutable state with copy
-class NewsViewModel : ViewModel() {
-    private val _uiState = MutableStateFlow(NewsUiState())
-    val uiState: StateFlow<NewsUiState> = _uiState.asStateFlow()
-    
-    fun addItem(item: NewsItem) {
-        _uiState.update { currentState ->
-            currentState.copy(items = currentState.items + item)
+class BudgetViewModel : ViewModel() {
+    private val _state = MutableStateFlow(BudgetUiState())
+    val state: StateFlow<BudgetUiState> = _state.asStateFlow()
+
+    fun addTransaction(item: Transaction) {
+        _state.update { currentState ->
+            currentState.copy(transactions = currentState.transactions + item)
         }
     }
-    
-    fun clearItems() {
-        _uiState.update { currentState ->
-            currentState.copy(items = emptyList())
+
+    fun clearTransactions() {
+        _state.update { currentState ->
+            currentState.copy(transactions = emptyList())
         }
     }
 }
 
 // CORRECT - Immutable data transformations
-fun processItems(items: List<Item>): List<Item> {
+fun processTransactions(items: List<Transaction>): List<Transaction> {
     return items
         .filter { it.isValid }
         .map { it.copy(processed = true) }  // Creates new instances
@@ -346,11 +346,8 @@ Before marking work complete:
 - [ ] No println/console.log/Log.d statements in production code
 - [ ] No hardcoded values - use named constants
 - [ ] No magic numbers - define meaningful constant names
-
-// ... existing items ...
 - [ ] Use immutable collections where possible
 - [ ] StateFlow updates use `update {}` pattern
 
 ### Documentation:
 - [ ] **Context Check**: Did you change architecture or patterns? If yes, activate `documentation_maintenance` skill to update `.agent/rules`.
-

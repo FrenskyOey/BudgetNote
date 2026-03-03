@@ -6,7 +6,6 @@ import core.domain.repository.SessionState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.datetime.Clock
 
 class SessionRepositoryImpl(
     private val settings: Settings

@@ -6,39 +6,76 @@ description: Technology stack and library choices
 
 ## Core Technologies
 
-- **Kotlin Multiplatform**: The backbone of the application, enabling 100% shared logic and UI potential.
-- **Compose Multiplatform**: For declarative UI sharing across platforms.
+- **Kotlin Multiplatform**: Backbone of the application, enabling shared logic and UI across Android, iOS, and Desktop.
+- **Compose Multiplatform**: Declarative UI shared across platforms.
+- **Target Platforms**: Android (minSdk 24, targetSdk 35), iOS (arm64, simulatorArm64), Desktop (JVM 17)
+
+> [!NOTE]
+> All versions are managed centrally in `gradle/libs.versions.toml`.
+
+---
+
+## UI
+- `compose-material3` — Primary UI component library
+- `compose-material-icons-extended` — Extended icon set
+- `compose-foundation`, `compose-ui`, `compose-runtime` — Core Compose primitives
+- `androidx-lifecycle-viewmodelCompose` / `runtimeCompose` — ViewModel & lifecycle integration with Compose
+
+## Navigation
+- `androidx-navigation-compose` — Type-safe Compose Navigation for all platforms
 
 ## Resources
-- **Compose Multiplatform Resources**: Official Jetbrains library for sharing strings, images, and fonts (`composeResources`).
+- `compose-components-resources` — Shared strings, images, and fonts via `Res` object
 
 ## Dependency Injection
-- **Koin**: Chosen for its native Kotlin support and ease of use in KMP.
-    - `koin-core` for shared logic.
-    - `koin-compose` for UI injection.
-    - `koin-android` for Android-specific contexts.
+- `koin-core` — Core DI (shared)
+- `koin-compose` — `koinInject()` for Compose
+- `koin-compose-viewmodel` — `koinViewModel()` for Compose screens
+- `koin-android` — Android `androidContext()` support
 
 ## Networking
-- **Ktor**: Multiplatform asynchronous HTTP client.
-    - `ktor-client-core`: Shared interface.
-    - `ktor-client-content-negotiation`: JSON Serialization.
-    - `ktor-client-logging`: Debugging.
+- `ktor-client-core` — Multiplatform async HTTP client
+- `ktor-client-content-negotiation` + `ktor-serialization-kotlinx-json` — JSON serialization
+- `ktor-client-logging` — Request/response debug logging
+- `ktor-client-auth` — Bearer token authentication plugin
+- `ktor-client-android` — Engine for Android & Desktop (JVM)
+- `ktor-client-darwin` — Engine for iOS
+- `ktor-client-mock` — Mock engine for tests
+
+## Backend / Cloud
+- `supabase-auth` (`auth-kt`) — Authentication (login, session)
+- `supabase-functions` (`functions-kt`) — Supabase Edge Functions client
 
 ## Database
-- **Room**: Recently supported in KMP (via SQLite bundled key). Provides robust ORM with compile-time verification.
+- `androidx-room-runtime` + `sqlite-bundled` — KMP ORM with bundled SQLite driver
+- `androidx-room-compiler` — KSP annotation processor (applied via `kspAndroid`, `kspDesktop`, `kspIos*`)
 
 ## Local Storage
-- **DataStore (Preferences)**: For storing simple key-value pairs (settings, flags).
+- `multiplatform-settings` — Key-value storage; secure instance injected via `named("secure")` Koin qualifier
+- `multiplatform-settings-no-arg` — No-arg factory for Desktop
+- `androidx-datastore-preferences` — Preferences DataStore for structured key-value data
+- `androidx-security-crypto` — `EncryptedSharedPreferences` for Android secure storage
+
+## Serialization
+- `kotlinx-serialization-json` — JSON serialization for DTOs and API models
 
 ## Asynchronous Programming
-- **Kotlinx Coroutines**: For structured concurrency.
+- `kotlinx-coroutines-core` — Structured concurrency (shared)
+- `kotlinx-coroutines-android` — Android `Main` dispatcher
+- `kotlinx-coroutines-swing` — Desktop (Swing) `Main` dispatcher
+- `kotlinx-coroutines-test` — Test utilities
 
 ## Date & Time
-- **Kotlinx DateTime**: Multiplatform date/time handling.
+- `kotlinx-datetime` — Multiplatform date/time handling
 
 ## Image Loading
-- **Coil 3**: Multiplatform image loading for Compose.
+- `coil-compose` + `coil-network-ktor3` — Multiplatform image loading with Ktor network fetcher
 
-## Build System
-- **Gradle Version Catalogs**: For centralized dependency management (`libs.versions.toml`).
-- **Kotlin DSL**: type-safe build scripts.
+## Utilities
+- `okio` — File I/O and buffer utilities
+
+## Build Tooling
+- **Gradle Version Catalogs** (`libs.versions.toml`) — Centralized dependency management
+- **KSP** — Kotlin Symbol Processing for Room code generation
+- **BuildKonfig** — Injects `local.properties` values (API URLs, Supabase keys) into a generated `BuildConfig` per flavor/target
+- **Android Product Flavors** — `staging` and `production` build variants with separate config

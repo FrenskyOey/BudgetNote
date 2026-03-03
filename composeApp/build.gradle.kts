@@ -173,16 +173,10 @@ android {
             dimension = "environment"
             applicationIdSuffix = ".staging"
             resValue("string", "app_name", "BudgetNote (Staging)")
-            buildConfigField("String", "BASE_API_URL", "\"https://cd841015-7e2e-4a18-8082-a7c23d45097e.mock.pstmn.io/v1/\"")
-            buildConfigField("String", "FLAVOR_NAME", "\"Staging\"")
-            buildConfigField("String", "SUPABASE_ANON_KEY", "\"\"")
         }
         create("production") {
             dimension = "environment"
             resValue("string", "app_name", "BudgetNote")
-            buildConfigField("String", "BASE_API_URL", "\"https://cd841015-7e2e-4a18-8082-a7c23d45097e.mock.pstmn.io/v1/\"")
-            buildConfigField("String", "FLAVOR_NAME", "\"Production\"")
-            buildConfigField("String", "SUPABASE_ANON_KEY", "\"\"")
         }
     }
     buildFeatures {

@@ -14,14 +14,13 @@ description: Environment configuration and AppConfig usage
 // ✅ CORRECT - AppConfig in core/domain/config
 core/domain/config/
 ├── AppConfig.kt                    # Interface (commonMain)
-├── AndroidAppConfig.kt             # Android implementation (androidMain)
-└── IosAppConfig.kt                 # iOS implementation (iosMain)
 
 // AppConfig.kt (commonMain)
 interface AppConfig {
     val baseApiUrl: String
     val flavorName: String
-    // Add other environment-specific configs here
+    val supabaseAnonKey: String
+    val platform: String
 }
 
 expect fun createAppConfig(): AppConfig

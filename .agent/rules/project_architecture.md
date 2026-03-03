@@ -20,13 +20,13 @@ This is a Kotlin Multiplatform (KMP) project following a **Feature-First Modular
 ### 1. Feature Layer (`feature/[name]/`)
 Features are component-based and self-contained.
 
-```kotlin
+```
 feature/[name]/
 ├── data/              # Implementation details
-│   ├── api/           # Ktor API definitions
-│   ├── dao/           # Room DAOs
-│   ├── datasource/    # Data Sources (Remote/Local)
-│   ├── model/         # DTOs & Entities
+│   ├── api/           # Ktor API service interface & impl
+│   ├── datasource/    # Data Sources (Remote/Local impls)
+│   ├── mapper/        # DTO ↔ Domain mappers
+│   ├── model/         # DTOs, Entities, Requests, Responses
 │   └── repository/    # Repository Implementation
 ├── domain/            # Business Logic (Pure Kotlin)
 │   ├── model/         # Domain Models
@@ -34,29 +34,42 @@ feature/[name]/
 │   └── usecase/       # Interactors/Use Cases
 ├── di/                # Koin Module
 └── ui/                # Presentation Layer
-    ├── [screen]/      # Screen Composables
-    └── components/    # Feature specific components
+    ├── screen/        # Screen Composables
+    ├── components/    # Feature-specific reusable components
+    ├── state/         # UI State, Events (Intent), Effects
+    └── viewmodel/     # ViewModel
 ```
 
-**Dependency Flow**: `ui` -> `domain` <- `data`
+> [!NOTE]
+> - `feature/data/` uses `mapper/` (not `dao/`) — DAOs belong in `core/data/local/database/`.
+> - `feature/ui/` always has `state/` for `UiState`, `Event`, and `Effect` classes, and `viewmodel/` for the ViewModel.
+
+**Dependency Flow**: `ui` → `domain` ← `data`
 
 ### 2. Core Layer (`core/`)
 Shared infrastructure and utilities used by multiple features.
 
-```kotlin
-core/
-├── data/
-│   ├── remote/        # Network (Base, Util)
-│   ├── local/         # Persistence (Database, Prefs)
-│   └── mapper/        # Shared Mapper interfaces
-├── domain/
-│   ├── model/         # Shared Models (Result, AppError)
-│   ├── repository/    # Shared Interfaces
-│   ├── usecase/       # Shared Use Cases
-│   └── config/        # AppConfig & Constants
-├── di/                # Core DI Config
-└── util/              # Shared Utilities (Logger, Date)
 ```
+core/
+├── components/        # Shared reusable UI components (CoreButton, CoreTextInput, etc.)
+├── data/
+│   ├── remote/        # Network utilities (ApiErrorHandler, JsonSerializer, BaseResponse)
+│   ├── local/         # Persistence (AppDatabase, DatabaseBuilder, PreferencesManager)
+│   ├── mapper/        # Shared Mapper interfaces
+│   └── repository/    # Core repository implementations (e.g., SessionRepositoryImpl)
+├── domain/
+│   ├── model/         # Shared Models (Result, AppException, PaginatedData)
+│   ├── repository/    # Shared Repository Interfaces (e.g., SessionRepository)
+│   └── config/        # AppConfig & Constants
+├── di/                # Core DI modules (coreNetworkModule, coreDatabaseModule, etc.)
+├── mvi/               # MVI base classes (MviViewModel, MviView, ViewEffect)
+├── navigation/        # Shared navigation routes/helpers
+├── theme/             # Design system (Color, Typography, Dimens, Theme)
+└── util/              # Shared Utilities (TimeUtil, HashUtil)
+```
+
+> [!NOTE]
+> `core/domain/` does **not** have a `usecase/` directory — shared use cases do not exist yet. If shared use cases are needed in the future, add them to `core/domain/usecase/`.
 
 ---
 
@@ -80,11 +93,16 @@ core/
 | Type | Correct Location |
 | :--- | :--- |
 | **Shared Model** | `core/domain/model/` |
-| **Feature Model** | `feature/[name]/domain/model/` |
+| **Feature Domain Model** | `feature/[name]/domain/model/` |
+| **Feature DTO / Entity** | `feature/[name]/data/model/` |
+| **Feature Mapper** | `feature/[name]/data/mapper/` |
 | **Shared Util** | `core/util/` |
-| **Private Util** | `feature/[name]/data/util/` or `feature/[name]/ui/util/` |
-| **DTOs** | `feature/[name]/data/model/` |
+| **Shared UI Component** | `core/components/` |
+| **Feature UI Component** | `feature/[name]/ui/components/` |
+| **UI State / Event / Effect** | `feature/[name]/ui/state/` |
+| **ViewModel** | `feature/[name]/ui/viewmodel/` |
 | **Exceptions** | `core/domain/model/AppException.kt` |
+| **DAOs** | `core/data/local/database/` |
 
 ---
 
@@ -92,6 +110,6 @@ core/
 
 Since physical separation is not enforced by Gradle modules, discipline is required:
 
-1.  **Shared Logic**: Move to `core`.
-2.  **Shared Interface**: Define interface in `core`, implement in Feature A, inject in Feature B.
-3.  **Navigation**: Pass primitive data via navigation routes.
+1. **Shared Logic**: Move to `core`.
+2. **Shared Interface**: Define interface in `core`, implement in Feature A, inject in Feature B.
+3. **Navigation**: Pass primitive data via navigation routes.
