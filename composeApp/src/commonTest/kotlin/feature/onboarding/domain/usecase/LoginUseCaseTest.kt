@@ -143,28 +143,7 @@ class LoginUseCaseTest {
         assertEquals("user@example.com", fakeRepository.lastCredentials?.email)
     }
     
-    @Test
-    fun `should hash password with MD5 before sending to repository`() = runBlockingTest {
-        // Arrange
-        val fakeRepository = FakeAuthRepository()
-        val validateEmail = ValidateEmailUseCase()
-        val validatePassword = ValidatePasswordUseCase()
-        val useCase = LoginUseCase(fakeRepository, validateEmail, validatePassword)
-        
-        val email = "user@example.com"
-        val password = "Test123"
-        
-        // Act
-        val result = useCase(email, password)
-        
-        // Assert
-        assertTrue(result is Result.Success)
-        // Verify that password was hashed (should not be the original password)
-        assertTrue(fakeRepository.lastCredentials?.password != password)
-        // MD5("Test123") = "68eacb97d86f0c4621fa2b0e17cabd8c"
-        assertEquals("68eacb97d86f0c4621fa2b0e17cabd8c", fakeRepository.lastCredentials?.password)
-    }
-    
+
     @Test
     fun `should return network error when repository returns network error`() = runBlockingTest {
         // Arrange
@@ -235,6 +214,8 @@ class LoginUseCaseTest {
         override suspend fun logout(): Result<Unit> = Result.Success(Unit)
         override suspend fun getCurrentUser(): Result<User?> = Result.Success(null)
         override suspend fun isLoggedIn(): Boolean = false
+        
+        override suspend fun refreshToken(failedAccessToken: String?): Result<String> = Result.Success("token")
     }
     
     // Helper function for running suspending test

@@ -7,6 +7,7 @@ import feature.onboarding.data.model.entity.UserEntity
 interface AuthDataSource {
     interface Remote {
         suspend fun login(request: LoginRequest): LoginResponse
+        suspend fun refreshToken(refreshToken: String): LoginResponse
     }
 
     interface Local {
@@ -16,5 +17,8 @@ interface AuthDataSource {
         suspend fun getToken(): String?
         suspend fun saveToken(token: String)
         suspend fun clearToken()
+        suspend fun getRefreshToken(): String?
+        suspend fun saveRefreshToken(token: String)
+        suspend fun clearRefreshToken()
     }
 }

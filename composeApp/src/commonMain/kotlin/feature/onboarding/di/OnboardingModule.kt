@@ -14,9 +14,6 @@ import feature.onboarding.ui.viewmodel.LoginViewModel
 import org.koin.core.module.dsl.viewModel
 
 val onboardingModule = module {
-    // API Service
-    single<AuthApiService> { AuthApiServiceImpl(get(), get()) }
-
     // Data Sources
     single<AuthDataSource.Remote> { AuthRemoteDataSourceImpl(get()) }
     single<AuthDataSource.Local> { AuthLocalDataSourceImpl(get(named("secure"))) }

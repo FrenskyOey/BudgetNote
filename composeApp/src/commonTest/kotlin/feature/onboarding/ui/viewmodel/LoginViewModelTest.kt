@@ -47,6 +47,8 @@ class FakeAuthRepository : AuthRepository {
     override suspend fun logout(): Result<Unit> = logoutResult
     override suspend fun isLoggedIn(): Boolean = isLoggedInResult
     override suspend fun getCurrentUser(): Result<User?> = getCurrentUserResult
+    
+    override suspend fun refreshToken(failedAccessToken: String?): Result<String> = Result.Success("token")
 }
 
 class FakeSessionRepository : SessionRepository {

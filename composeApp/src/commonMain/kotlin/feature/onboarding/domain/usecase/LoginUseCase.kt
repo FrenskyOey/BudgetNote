@@ -50,13 +50,10 @@ class LoginUseCase(
             else -> { /* Continue */ }
         }
         
-        // Step 4: Hash password with MD5
-        val hashedPassword = HashUtil.md5(trimmedPassword)
-        
-        // Step 5: Create credentials and call repository
+        // Step 4: Create credentials and call repository
         val credentials = LoginCredentials(
             email = trimmedEmail,
-            password = hashedPassword
+            password = trimmedPassword
         )
         
         return authRepository.login(credentials)

@@ -54,6 +54,8 @@ class LogoutUseCaseTest {
         
         override suspend fun getCurrentUser(): Result<User?> = Result.Success(null)
         override suspend fun isLoggedIn(): Boolean = false
+        
+        override suspend fun refreshToken(failedAccessToken: String?): Result<String> = Result.Success("token")
     }
     
     // Helper function for running suspending test

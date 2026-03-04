@@ -40,4 +40,13 @@ interface AuthRepository {
      */
     suspend fun isLoggedIn(): Boolean
     
+    /**
+     * Refreshes the authentication token.
+     * Guaranteed to return the new token string on success or Error.
+     * Handles concurrent refresh requests safely using a double-checked locking queue.
+     * 
+     * @param failedAccessToken The token that triggered the 401, used to prevent redundant API calls from queued requests.
+     * @return Result containing new token string or error
+     */
+    suspend fun refreshToken(failedAccessToken: String? = null): Result<String>
 }

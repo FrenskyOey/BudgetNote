@@ -87,12 +87,38 @@ class AuthLocalDataSourceImplTest {
         val dataSource = AuthLocalDataSourceImpl(settings)
         val user = UserEntity(123, "test@example.com", "valid_token")
         dataSource.saveUser(user)
+        dataSource.saveRefreshToken("refresh_token")
 
         dataSource.clearUser()
 
         assertNull(dataSource.getUser())
         assertNull(dataSource.getToken())
+        assertNull(dataSource.getRefreshToken())
         assertEquals(false, settings.hasKey(AuthLocalDataSourceImpl.KEY_USER_DATA))
         assertEquals(false, settings.hasKey(AuthLocalDataSourceImpl.KEY_USER_TOKEN))
+        assertEquals(false, settings.hasKey(AuthLocalDataSourceImpl.KEY_USER_REFRESH_TOKEN))
+    }
+
+    @Test
+    fun `getRefreshToken returns saved token`() = runTest {
+        val settings = FakeSettings()
+        val dataSource = AuthLocalDataSourceImpl(settings)
+        dataSource.saveRefreshToken("refresh_token_123")
+
+        val token = dataSource.getRefreshToken()
+
+        assertEquals("refresh_token_123", token)
+    }
+
+    @Test
+    fun `clearRefreshToken removes refresh token`() = runTest {
+        val settings = FakeSettings()
+        val dataSource = AuthLocalDataSourceImpl(settings)
+        dataSource.saveRefreshToken("refresh_token_123")
+
+        dataSource.clearRefreshToken()
+
+        assertNull(dataSource.getRefreshToken())
+        assertEquals(false, settings.hasKey(AuthLocalDataSourceImpl.KEY_USER_REFRESH_TOKEN))
     }
 }

@@ -28,6 +28,11 @@ class FakeAuthRemoteDataSource : AuthDataSource.Remote {
         thrownException?.let { throw it }
         return response ?: throw IllegalStateException("Response not set")
     }
+
+    override suspend fun refreshToken(refreshToken: String): LoginResponse {
+        thrownException?.let { throw it }
+        return response ?: throw IllegalStateException("Response not set")
+    }
 }
 
 class FakeAuthLocalDataSource : AuthDataSource.Local {
@@ -59,6 +64,20 @@ class FakeAuthLocalDataSource : AuthDataSource.Local {
     override suspend fun saveToken(token: String) {
        this.token = token
     }
+
+    var refreshToken: String? = null
+
+    override suspend fun getRefreshToken(): String? {
+        return refreshToken
+    }
+
+    override suspend fun saveRefreshToken(token: String) {
+        this.refreshToken = token
+    }
+
+    override suspend fun clearRefreshToken() {
+        refreshToken = null
+    }
 }
 
 class AuthRepositoryImplTest {
@@ -69,10 +88,15 @@ class AuthRepositoryImplTest {
 
     @Test
     fun `login success saves user and returns success`() = runTest {
-        // Repository expects password to already be hashed (done by LoginUseCase)
-        val hashedPassword = "5f4dcc3b5aa765d61d8327deb882cf99" // MD5 of "password"
-        val credentials = LoginCredentials("test@example.com", hashedPassword)
-        val userData = UserData("test@example.com", 123, "token")
+        val credentials = LoginCredentials("test@example.com", "password")
+        val userData = UserData(
+            userName = "test@example.com",
+            userId = 123,
+            email = "test@example.com",
+            phone = "+1234567890",
+            token = "token",
+            refreshToken = "refresh_token"
+        )
         remoteDataSource.response = LoginResponse(userData, true)
 
         val result = repository.login(credentials)
@@ -81,13 +105,12 @@ class AuthRepositoryImplTest {
         val user = (result as Result.Success).data
         assertEquals("test@example.com", user.userName)
         assertEquals("test@example.com", localDataSource.savedUser?.userName)
-        assertEquals(hashedPassword, remoteDataSource.lastLoginRequest?.password)
+        assertEquals("password", remoteDataSource.lastLoginRequest?.password)
     }
 
     @Test
     fun `login failure returns Error`() = runTest {
-        val hashedPassword = "5f4dcc3b5aa765d61d8327deb882cf99" // MD5 of "password"
-        val credentials = LoginCredentials("test@example.com", hashedPassword)
+        val credentials = LoginCredentials("test@example.com", "password")
         remoteDataSource.response = LoginResponse(null, false, "Invalid credentials")
 
         val result = repository.login(credentials)
@@ -118,5 +141,61 @@ class AuthRepositoryImplTest {
     fun `isLoggedIn returns false when token missing`() = runTest {
         localDataSource.token = null
         assertFalse(repository.isLoggedIn())
+    }
+
+    @Test
+    fun `refreshToken success updates local tokens`() = runTest {
+        localDataSource.token = "old_token"
+        localDataSource.refreshToken = "old_refresh_token"
+        localDataSource.savedUser = UserEntity(1, "user", "old_token") // Just mock state
+        
+        val userData = UserData(
+            userName = "test",
+            userId = 123,
+            email = "test",
+            phone = "123",
+            token = "new_token",
+            refreshToken = "new_refresh_token"
+        )
+        remoteDataSource.response = LoginResponse(userData, true)
+
+        val result = repository.refreshToken()
+
+        assertIs<Result.Success<*>>(result)
+        assertEquals("new_token", localDataSource.token)
+        assertEquals("new_refresh_token", localDataSource.refreshToken)
+        assertEquals("new_token", (result as Result.Success).data)
+    }
+
+    @Test
+    fun `refreshToken failure clears local data`() = runTest {
+        localDataSource.token = "old_token"
+        localDataSource.refreshToken = "old_refresh_token"
+        localDataSource.savedUser = UserEntity(1, "user", "old_token")
+        
+        remoteDataSource.response = LoginResponse(null, false, "Expired refresh token")
+
+        val result = repository.refreshToken()
+
+        assertIs<Result.Error>(result)
+        assertEquals(null, localDataSource.token)
+        assertEquals(null, localDataSource.refreshToken)
+        assertEquals(null, localDataSource.savedUser)
+    }
+
+    @Test
+    fun `refreshToken exception clears local data`() = runTest {
+        localDataSource.token = "old_token"
+        localDataSource.refreshToken = "old_refresh_token"
+        localDataSource.savedUser = UserEntity(1, "user", "old_token")
+        
+        remoteDataSource.thrownException = RuntimeException("Network Error")
+
+        val result = repository.refreshToken()
+
+        assertIs<Result.Error>(result)
+        assertEquals(null, localDataSource.token)
+        assertEquals(null, localDataSource.refreshToken)
+        assertEquals(null, localDataSource.savedUser)
     }
 }

@@ -8,6 +8,7 @@ import core.di.coreDatabaseModule
 import core.di.coreNetworkModule
 import core.di.corePreferencesModule
 import core.di.coreConfigModule
+import core.di.coreSupabaseModule
 import core.di.secureStorageModule
 import di.appModule
 import feature.onboarding.di.onboardingModule
@@ -38,9 +39,9 @@ class MyApp : Application() {
                 coreNetworkModule,
                 coreDatabaseModule,
                 corePreferencesModule,
-                corePreferencesModule,
                 coreConfigModule,
                 secureStorageModule,
+                coreSupabaseModule,
                 // Feature modules
                 settingsModule,
                 onboardingModule,
