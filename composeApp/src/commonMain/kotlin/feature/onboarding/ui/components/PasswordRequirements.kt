@@ -57,16 +57,6 @@ fun PasswordRequirements(
                 text = "At least 6 characters",
                 isMet = password.length >= 6
             )
-            
-            RequirementItem(
-                text = "Contains letters",
-                isMet = password.any { it.isLetter() }
-            )
-            
-            RequirementItem(
-                text = "Contains numbers",
-                isMet = password.any { it.isDigit() }
-            )
         }
     }
 }

@@ -13,7 +13,7 @@ val coreSupabaseModule = module {
         val supabaseKey = config.supabaseAnonKey
         
         createSupabaseClient(
-             supabaseUrl = config.baseApiUrl,
+             supabaseUrl = config.supabaseUrl,
              supabaseKey = supabaseKey
          ) {
              install(Auth)

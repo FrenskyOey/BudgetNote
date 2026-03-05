@@ -5,6 +5,7 @@ import core.di.coreDatabaseModule
 import core.di.coreNetworkModule
 import core.di.corePreferencesModule
 import core.di.coreSupabaseModule
+import core.di.coreUtilModule
 import core.di.secureStorageModule
 import di.appModule
 import feature.onboarding.di.onboardingModule
@@ -21,6 +22,7 @@ fun doInitKoin() {
             coreConfigModule,
             secureStorageModule,
             coreSupabaseModule,
+            coreUtilModule,
             settingsModule,
             onboardingModule,
             appModule

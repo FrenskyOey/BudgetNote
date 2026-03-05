@@ -1,12 +1,14 @@
 package feature.onboarding.data.datasource.remote
 
 import core.domain.model.AppException
+import core.util.log.LogHelper
 import feature.onboarding.data.datasource.AuthDataSource
 import feature.onboarding.data.model.request.LoginRequest
 import feature.onboarding.data.model.response.LoginResponse
 import feature.onboarding.data.model.response.UserData
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.exception.AuthRestException
 import io.github.jan.supabase.auth.providers.builtin.Email
 
 class AuthRemoteDataSourceImpl(
@@ -38,8 +40,11 @@ class AuthRemoteDataSourceImpl(
                 data = userData,
                 isSuccess = true
             )
-        } catch (e: Exception) {
-            // Note: In real app, might want to map specific Supabase auth exceptions to AppException
+        } catch (e: AuthRestException) {
+            LogHelper().error(e.message ?: "SUPABASE Error Auth",e, "SUPABASE")
+            throw AppException.AuthException(e.errorDescription ?: "Unknown login error")
+        }catch (e : Exception){
+            LogHelper().error(e.message ?: "Exception",e, "SUPABASE")
             throw AppException.AuthException(e.message ?: "Unknown login error")
         }
     }
@@ -73,6 +78,7 @@ class AuthRemoteDataSourceImpl(
                 isSuccess = true
             )
         } catch (e: Exception) {
+            LogHelper().error(e.message ?: "SUPABASE Error Auth",e, "SUPABASE")
             throw AppException.AuthException(e.message ?: "Unknown refresh token error")
         }
     }

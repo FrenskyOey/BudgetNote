@@ -34,7 +34,8 @@ class ValidatePasswordUseCase {
                 AppException.ValidationError("Invalid password: Minimum 6 characters required")
             )
         }
-        
+
+        /*
         // Check for at least one letter
         val hasLetter = password.any { it.isLetter() }
         if (!hasLetter) {
@@ -50,7 +51,7 @@ class ValidatePasswordUseCase {
                 AppException.ValidationError("Invalid password: Must contain at least one number")
             )
         }
-        
+        */
         return Result.Success(Unit)
     }
 }
