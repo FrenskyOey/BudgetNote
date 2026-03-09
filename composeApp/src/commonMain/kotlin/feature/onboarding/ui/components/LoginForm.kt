@@ -105,7 +105,7 @@ fun LoginForm(
             text = "Log In",
             onClick = onLoginClick,
             isLoading = state.isLoading,
-            enabled = !state.isLoading, // Button logic handled by CoreLoadingButton, but explicit enable check doesn't hurt
+            enabled = !state.isLoading,
             modifier = Modifier.fillMaxWidth()
         )
     }

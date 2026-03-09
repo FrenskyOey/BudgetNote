@@ -66,6 +66,9 @@ class LoginViewModel(
             is LoginEvent.SignUpClicked -> {
                 sendEffect(LoginEffect.ShowToast("Coming Soon: Sign Up"))
             }
+            is LoginEvent.GoogleSignInClicked ->{
+
+            }
         }
     }
 
