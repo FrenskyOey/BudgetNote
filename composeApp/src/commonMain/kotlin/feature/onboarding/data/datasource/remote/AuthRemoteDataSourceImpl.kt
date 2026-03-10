@@ -9,7 +9,9 @@ import feature.onboarding.data.model.response.UserData
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.exception.AuthRestException
+import io.github.jan.supabase.auth.providers.Google
 import io.github.jan.supabase.auth.providers.builtin.Email
+import io.github.jan.supabase.auth.providers.builtin.IDToken
 
 class AuthRemoteDataSourceImpl(
     private val supabaseClient: SupabaseClient
@@ -80,6 +82,45 @@ class AuthRemoteDataSourceImpl(
         } catch (e: Exception) {
             LogHelper().error(e.message ?: "SUPABASE Error Auth",e, "SUPABASE")
             throw AppException.AuthException(e.message ?: "Unknown refresh token error")
+        }
+    }
+
+    override suspend fun loginWithGoogle(idToken: String, accessToken: String): LoginResponse {
+        return try {
+            supabaseClient.auth.signInWith(IDToken) {
+                this.idToken = idToken
+                this.accessToken = accessToken
+                this.provider = Google
+            }
+
+            val session = supabaseClient.auth.currentSessionOrNull()
+                ?: throw AppException.AuthException("Failed to retrieve session after Google sign-in")
+
+            val user = supabaseClient.auth.currentUserOrNull()
+                ?: throw AppException.AuthException("Failed to retrieve user after Google sign-in")
+
+            val userData = UserData(
+                userName = user.userMetadata?.get("full_name")?.toString()?.replace("\"", "")
+                    ?: user.userMetadata?.get("name")?.toString()?.replace("\"", "")
+                    ?: user.email
+                    ?: "User",
+                userId = user.id.hashCode(),
+                email = user.email ?: "",
+                phone = user.phone ?: "",
+                token = session.accessToken,
+                refreshToken = session.refreshToken ?: ""
+            )
+
+            LoginResponse(
+                data = userData,
+                isSuccess = true
+            )
+        } catch (e: AuthRestException) {
+            LogHelper().error(e.message ?: "SUPABASE Google SSO Error", e, "SUPABASE")
+            throw AppException.AuthException(e.errorDescription ?: "Google sign-in failed")
+        } catch (e: Exception) {
+            LogHelper().error(e.message ?: "Exception", e, "SUPABASE")
+            throw AppException.AuthException(e.message ?: "Google sign-in failed")
         }
     }
 }

@@ -53,6 +53,7 @@ class CheckLoginStatusUseCaseTest {
         override suspend fun isLoggedIn(): Boolean = isLoggedIn
         
         override suspend fun refreshToken(failedAccessToken: String?): Result<String> = Result.Success("token")
+        override suspend fun loginWithGoogle(idToken: String, accessToken: String): Result<User> = Result.Success(User(1, "test", "token"))
     }
     
     // Helper function for running suspending test

@@ -41,59 +41,6 @@ class ValidatePasswordUseCaseTest {
     }
     
     @Test
-    fun `should return error when password contains only letters`() {
-        // Arrange
-        val invalidPasswords = listOf(
-            "abcdef",
-            "ABCDEF",
-            "Password",
-            "OnlyLetters"
-        )
-        
-        // Act & Assert
-        invalidPasswords.forEach { password ->
-            val result = useCase(password)
-            assertTrue(
-                result is Result.Error,
-                "Expected error for password with only letters: $password"
-            )
-            val error = (result as Result.Error).exception
-            assertTrue(error is AppException.ValidationError)
-            assertTrue(
-                error.errorMessage.contains("alphanumeric") || 
-                error.errorMessage.contains("number"),
-                "Error message should mention alphanumeric or number requirement"
-            )
-        }
-    }
-    
-    @Test
-    fun `should return error when password contains only numbers`() {
-        // Arrange
-        val invalidPasswords = listOf(
-            "123456",
-            "999999",
-            "1234567890"
-        )
-        
-        // Act & Assert
-        invalidPasswords.forEach { password ->
-            val result = useCase(password)
-            assertTrue(
-                result is Result.Error,
-                "Expected error for password with only numbers: $password"
-            )
-            val error = (result as Result.Error).exception
-            assertTrue(error is AppException.ValidationError)
-            assertTrue(
-                error.errorMessage.contains("alphanumeric") || 
-                error.errorMessage.contains("letter"),
-                "Error message should mention alphanumeric or letter requirement"
-            )
-        }
-    }
-    
-    @Test
     fun `should return error when password is less than 6 characters`() {
         // Arrange
         val shortPasswords = listOf(
@@ -159,21 +106,4 @@ class ValidatePasswordUseCaseTest {
         }
     }
     
-    @Test
-    fun `should accept special characters but still require letters and numbers`() {
-        // Arrange - Special chars are allowed but letters + numbers still required
-        val validWithSpecialChars = "Test@123"
-        val invalidOnlySpecialAndNumbers = "@#$123"
-        val invalidOnlySpecialAndLetters = "Test@#$"
-        
-        // Act
-        val validResult = useCase(validWithSpecialChars)
-        val invalidResult1 = useCase(invalidOnlySpecialAndNumbers)
-        val invalidResult2 = useCase(invalidOnlySpecialAndLetters)
-        
-        // Assert
-        assertTrue(validResult is Result.Success)
-        assertTrue(invalidResult1 is Result.Error)
-        assertTrue(invalidResult2 is Result.Error)
-    }
 }

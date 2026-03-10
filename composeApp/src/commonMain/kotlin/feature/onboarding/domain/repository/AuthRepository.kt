@@ -41,6 +41,15 @@ interface AuthRepository {
     suspend fun isLoggedIn(): Boolean
     
     /**
+     * Authenticates user via Google SSO using tokens obtained from the Google Sign-In SDK.
+     *
+     * @param idToken The Google ID token obtained from the Google Sign-In flow
+     * @param accessToken The Google access token obtained from the Google Sign-In flow
+     * @return Result containing User data on success, or error on failure
+     */
+    suspend fun loginWithGoogle(idToken: String, accessToken: String): Result<User>
+
+    /**
      * Refreshes the authentication token.
      * Guaranteed to return the new token string on success or Error.
      * Handles concurrent refresh requests safely using a double-checked locking queue.

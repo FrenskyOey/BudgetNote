@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import core.domain.model.Result
 import core.domain.repository.SessionRepository
+import feature.onboarding.domain.usecase.GoogleSignInUseCase
 import feature.onboarding.domain.usecase.LoginUseCase
 import feature.onboarding.domain.usecase.ValidateEmailUseCase
 import feature.onboarding.domain.usecase.ValidatePasswordUseCase
@@ -30,7 +31,8 @@ class LoginViewModel(
     private val loginUseCase: LoginUseCase,
     private val validateEmailUseCase: ValidateEmailUseCase,
     private val validatePasswordUseCase: ValidatePasswordUseCase,
-    private val sessionRepository: SessionRepository
+    private val sessionRepository: SessionRepository,
+    private val googleSignInUseCase: GoogleSignInUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LoginState())
@@ -46,10 +48,10 @@ class LoginViewModel(
     fun onEvent(event: LoginEvent) {
         when (event) {
             is LoginEvent.EmailChanged -> {
-                _state.update { it.copy(email = event.email)}
+                _state.update { it.copy(email = event.email) }
             }
             is LoginEvent.PasswordChanged -> {
-                _state.update { it.copy(password = event.password)}
+                _state.update { it.copy(password = event.password) }
             }
             is LoginEvent.PasswordFocusChanged -> {
                 _state.update { it.copy(isPasswordFocused = event.isFocused) }
@@ -66,8 +68,8 @@ class LoginViewModel(
             is LoginEvent.SignUpClicked -> {
                 sendEffect(LoginEffect.ShowToast("Coming Soon: Sign Up"))
             }
-            is LoginEvent.GoogleSignInClicked ->{
-
+            is LoginEvent.GoogleSignIn -> {
+                performGoogleSignIn(event.idToken, event.accessToken)
             }
         }
     }
@@ -99,7 +101,7 @@ class LoginViewModel(
                 if (result is Result.Error) {
                     _state.update { it.copy(passwordError = result.exception.message) }
                 } else {
-                     _state.update { it.copy(passwordError = null) }
+                    _state.update { it.copy(passwordError = null) }
                 }
             }
             .launchIn(viewModelScope)
@@ -125,7 +127,7 @@ class LoginViewModel(
 
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
-            
+
             when (val result = loginUseCase(currentState.email, currentState.password)) {
                 is Result.Success -> {
                     // Start the session strictly. This updates SessionRepository state to Valid.
@@ -141,6 +143,31 @@ class LoginViewModel(
                 else -> {
                     _state.update { it.copy(isLoading = false) }
                     sendEffect(LoginEffect.ShowSnackbar("Unexpected login result"))
+                }
+            }
+        }
+    }
+
+    private fun performGoogleSignIn(idToken: String, accessToken: String) {
+        // Guard against concurrent sign-in attempts
+        if (_state.value.isLoading) return
+
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+
+            when (val result = googleSignInUseCase(idToken, accessToken)) {
+                is Result.Success -> {
+                    // Same pattern as email/password: start session, let App.kt handle navigation.
+                    sessionRepository.startSession()
+                    _state.update { it.copy(isLoading = false) }
+                }
+                is Result.Error -> {
+                    _state.update { it.copy(isLoading = false) }
+                    sendEffect(LoginEffect.ShowSnackbar(result.exception.message ?: "Google sign-in failed"))
+                }
+                else -> {
+                    _state.update { it.copy(isLoading = false) }
+                    sendEffect(LoginEffect.ShowSnackbar("Unexpected result from Google sign-in"))
                 }
             }
         }

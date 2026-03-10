@@ -8,6 +8,7 @@ interface AuthDataSource {
     interface Remote {
         suspend fun login(request: LoginRequest): LoginResponse
         suspend fun refreshToken(refreshToken: String): LoginResponse
+        suspend fun loginWithGoogle(idToken: String, accessToken: String): LoginResponse
     }
 
     interface Local {

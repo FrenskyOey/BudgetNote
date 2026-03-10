@@ -8,5 +8,5 @@ sealed class LoginEvent {
     object LoginClicked : LoginEvent()
     object ForgotPasswordClicked : LoginEvent()
     object SignUpClicked : LoginEvent()
-    object GoogleSignInClicked : LoginEvent()
+    data class GoogleSignIn(val idToken: String, val accessToken: String) : LoginEvent()
 }

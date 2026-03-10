@@ -6,6 +6,7 @@ import core.domain.repository.SessionRepository
 import core.domain.repository.SessionState
 import feature.onboarding.domain.model.User
 import feature.onboarding.domain.repository.AuthRepository
+import feature.onboarding.domain.usecase.GoogleSignInUseCase
 import feature.onboarding.domain.usecase.LoginUseCase
 import feature.onboarding.domain.usecase.ValidateEmailUseCase
 import feature.onboarding.domain.usecase.ValidatePasswordUseCase
@@ -47,8 +48,8 @@ class FakeAuthRepository : AuthRepository {
     override suspend fun logout(): Result<Unit> = logoutResult
     override suspend fun isLoggedIn(): Boolean = isLoggedInResult
     override suspend fun getCurrentUser(): Result<User?> = getCurrentUserResult
-    
     override suspend fun refreshToken(failedAccessToken: String?): Result<String> = Result.Success("token")
+    override suspend fun loginWithGoogle(idToken: String, accessToken: String): Result<User> = loginResult
 }
 
 class FakeSessionRepository : SessionRepository {
@@ -90,12 +91,14 @@ class LoginViewModelTest {
             validateEmailUseCase,
             validatePasswordUseCase
         )
-        
+        val googleSignInUseCase = GoogleSignInUseCase(authRepository)
+
         viewModel = LoginViewModel(
             loginUseCase,
             validateEmailUseCase,
             validatePasswordUseCase,
-            sessionRepository
+            sessionRepository,
+            googleSignInUseCase
         )
     }
 

@@ -28,8 +28,8 @@ val onboardingModule = module {
     
     // Domain Logic
     single { feature.onboarding.domain.usecase.LoginUseCase(get(), get(), get()) }
+    single { feature.onboarding.domain.usecase.GoogleSignInUseCase(get()) }
     
     // ViewModel
-    viewModel { LoginViewModel(get(), get(), get(), get()) }
+    viewModel { LoginViewModel(get(), get(), get(), get(), get()) }
 }
-

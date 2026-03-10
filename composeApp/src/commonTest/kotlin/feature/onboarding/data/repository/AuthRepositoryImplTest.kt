@@ -33,6 +33,11 @@ class FakeAuthRemoteDataSource : AuthDataSource.Remote {
         thrownException?.let { throw it }
         return response ?: throw IllegalStateException("Response not set")
     }
+
+    override suspend fun loginWithGoogle(idToken: String, accessToken: String): LoginResponse {
+        thrownException?.let { throw it }
+        return response ?: throw IllegalStateException("Response not set")
+    }
 }
 
 class FakeAuthLocalDataSource : AuthDataSource.Local {

@@ -95,6 +95,24 @@ class AuthRepositoryImpl(
         }
     }
 
+    override suspend fun loginWithGoogle(idToken: String, accessToken: String): Result<User> {
+        return try {
+            val response = remoteDataSource.loginWithGoogle(idToken, accessToken)
+
+            if (response.isSuccess && response.data != null) {
+                val user = response.data.toDomain()
+                localDataSource.saveUser(user.toEntity())
+                localDataSource.saveToken(response.data.token)
+                localDataSource.saveRefreshToken(response.data.refreshToken)
+                Result.Success(user)
+            } else {
+                Result.Error(AppException.AuthException(response.errorMessage ?: "Google sign-in failed"))
+            }
+        } catch (e: Exception) {
+            handleError(e)
+        }
+    }
+
     private fun handleError(e: Exception): Result.Error {
         val appException = ApiErrorHandler.handleError(e)
         return Result.Error(appException)

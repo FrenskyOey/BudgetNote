@@ -131,7 +131,7 @@ fun LoginPage(
 
             GoogleSignInForm(
                 isLoading = state.isLoading,
-                onGoogleSignInClick = { onEvent(LoginEvent.GoogleSignInClicked) },
+                onGoogleSignInClick = { onEvent(LoginEvent.GoogleSignIn(idToken = "", accessToken = "")) },
                 modifier = Modifier.fillMaxWidth()
             )
 
